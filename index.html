@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minecraft Voxel Code - ภารกิจนักคิดเชิงคำนวณ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Prompt:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    :root {
+      --mc-border-light: #ffffff;
+      --mc-border-dark: #373737;
+      --mc-border-outer: #000000;
+      --mc-bg-gray: #c6c6c6;
+      --mc-btn-bg: #8b8b8b;
+      --mc-btn-hover: #a0a0a0;
+      --mc-btn-pressed: #5c5c5c;
+      --mc-green: #55ff55;
+      --mc-red: #ff5555;
+      --mc-gold: #ffaa00;
+      --mc-aqua: #55ffff;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #1a1a1a;
+      font-family: 'Prompt', sans-serif;
+      color: #333;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .pixel-font {
+      font-family: 'Press Start 2P', monospace;
+      letter-spacing: 1px;
+    }
+
+    .mc-panel {
+      background-color: var(--mc-bg-gray);
+      border: 4px solid var(--mc-border-outer);
+      box-shadow: 
+        inset 4px 4px 0px 0px var(--mc-border-light),
+        inset -4px -4px 0px 0px var(--mc-border-dark),
+        6px 6px 0px rgba(0, 0, 0, 0.4);
+      position: relative;
+    }
+
+    .mc-slot {
+      background-color: #8b8b8b;
+      border: 3px solid #373737;
+      box-shadow: 
+        inset 3px 3px 0px 0px #242424,
+        inset -3px -3px 0px 0px #ffffff;
+    }
+
+    .mc-btn {
+      font-family: 'Prompt', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 10px 16px;
+      background-color: var(--mc-btn-bg);
+      color: #ffffff;
+      text-shadow: 2px 2px 0px #3f3f3f;
+      border: 3px solid #000000;
+      box-shadow: 
+        inset 3px 3px 0px 0px #ffffff,
+        inset -3px -3px 0px 0px #404040,
+        2px 2px 0px rgba(0,0,0,0.5);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: filter 0.08s;
+      outline: none;
+    }
+
+    .mc-btn:hover {
+      background-color: var(--mc-btn-hover);
+    }
+
+    .mc-btn:active {
+      box-shadow: 
+        inset 3px 3px 0px 0px #404040,
+        inset -3px -3px 0px 0px #ffffff;
+      transform: translate(1px, 1px);
+    }
+
+    .mc-btn.green {
+      background-color: #2e7d32;
+      box-shadow: 
+        inset 3px 3px 0px 0px #81c784,
+        inset -3px -3px 0px 0px #1b5e20,
+        2px 2px 0px rgba(0,0,0,0.5);
+    }
+    .mc-btn.green:hover { background-color: #388e3c; }
+
+    .mc-btn.red {
+      background-color: #c62828;
+      box-shadow: 
+        inset 3px 3px 0px 0px #ef5350,
+        inset -3px -3px 0px 0px #b71c1c,
+        2px 2px 0px rgba(0,0,0,0.5);
+    }
+    .mc-btn.red:hover { background-color: #d32f2f; }
+
+    .mc-btn.blue {
+      background-color: #1565c0;
+      box-shadow: 
+        inset 3px 3px 0px 0px #64b5f6,
+        inset -3px -3px 0px 0px #0d47a1,
+        2px 2px 0px rgba(0,0,0,0.5);
+    }
+    .mc-btn.blue:hover { background-color: #1976d2; }
+
+    .mc-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      filter: grayscale(80%);
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* Background Wall for Menu */
+    #menu-bg {
+      background: radial-gradient(circle at center, #2e2621 0%, #100b08 100%);
+      background-size: cover;
+    }
+
+    /* Top HUD in Game */
+    .hud-bar {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    .hud-bar > * {
+      pointer-events: auto;
+    }
+
+    .heart-icon {
+      font-size: 20px;
+      filter: drop-shadow(2px 2px 0px #000);
+      margin-right: 3px;
+    }
+
+    #game-layout {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      position: relative;
+    }
+
+    #canvas-container {
+      flex: 1;
+      height: 100%;
+      position: relative;
+      background: #78a7ff;
+      overflow: hidden;
+    }
+
+    #sidebar {
+      width: 360px;
+      height: 100%;
+      padding: 16px;
+      display: flex;
+      flex-col: column;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 25;
+      background-color: var(--mc-bg-gray);
+      border-left: 5px solid #000000;
+      box-shadow: inset 4px 0px 0px 0px var(--mc-border-light);
+    }
+
+    .command-queue {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 250px;
+      border: 3px solid #373737;
+      background: #606060;
+      box-shadow: inset 3px 3px 0px #222;
+    }
+
+    .command-chip {
+      background: #c6c6c6;
+      border: 2px solid #000;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 700;
+      color: #222;
+      box-shadow: inset 2px 2px 0 #fff, inset -2px -2px 0 #555;
+      animation: chipPop 0.15s ease-out;
+    }
+
+    .command-chip.active-step {
+      background: #ffeb3b;
+      border-color: #d50000;
+      box-shadow: 0 0 10px #ffeb3b;
+      transform: scale(1.02);
+    }
+
+    @keyframes chipPop {
+      0% { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(3px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      max-width: 520px;
+      width: 90%;
+      padding: 24px;
+      text-align: center;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 860px) {
+      #game-layout {
+        flex-direction: column;
+      }
+      #sidebar {
+        width: 100%;
+        height: 45%;
+        border-left: none;
+        border-top: 5px solid #000;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="screen-menu" class="screen active">
+    <div class="mc-panel" style="padding: 36px 30px; text-align: center; max-width: 480px; width: 90%;">
+      <div style="margin-bottom: 24px;">
+        <span class="pixel-font" style="color: var(--mc-gold); font-size: 15px; text-shadow: 2px 2px 0 #000; display: block; margin-bottom: 8px;">
+          ★ COMPUTATIONAL THINKING ★
+        </span>
+        <h1 class="pixel-font" style="color: #ffffff; font-size: 24px; text-shadow: 3px 3px 0 #242424; line-height: 1.4;">
+          MINECRAFT<br><span style="color: var(--mc-green);">VOXEL CODE</span>
+        </h1>
+        <p style="font-size: 14px; font-weight: 600; color: #404040; margin-top: 6px;">
+          ภารกิจนักคิดเชิงคำนวณพิชิตบล็อกเพชร
+        </p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <button class="mc-btn green" onclick="App.showScreen('difficulty')" style="font-size: 18px; padding: 14px;">
+          ⛏️ เริ่มเล่นเกม (Play Game)
+        </button>
+        <button class="mc-btn" onclick="App.toggleHelpModal(true)">
+          📖 วิธีเล่น & ทักษะที่ได้
+        </button>
+      </div>
+      
+      <div style="margin-top: 24px; font-size: 11px; color: #555; font-weight: 600;">
+        เหมาะสำหรับฝึกฝน Algorithm, Sequencing และ Debugging
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-difficulty" class="screen">
+    <div class="mc-panel" style="padding: 30px; text-align: center; max-width: 520px; width: 92%;">
+      <h2 class="pixel-font" style="color: #fff; text-shadow: 2px 2px #000; font-size: 18px; margin-bottom: 12px;">
+        เลือกระดับความท้าทาย
+      </h2>
+      <p style="font-size: 14px; font-weight: 600; color: #444; margin-bottom: 20px;">
+        ขนาดของแผนที่และหัวใจจะเปลี่ยนไปตามระดับ:
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+        <button class="mc-btn" onclick="App.selectDifficulty('easy')" style="justify-content: space-between;">
+          <span>🟢 Easy (ระดับง่าย)</span>
+          <span class="pixel-font" style="font-size: 11px;">❤️ 3 | 5x5 Grid</span>
+        </button>
+        <button class="mc-btn" onclick="App.selectDifficulty('medium')" style="justify-content: space-between;">
+          <span>🟡 Medium (ปานกลาง)</span>
+          <span class="pixel-font" style="font-size: 11px;">❤️ 3 | 6x6 Grid</span>
+        </button>
+        <button class="mc-btn" onclick="App.selectDifficulty('hard')" style="justify-content: space-between;">
+          <span>🔴 Hard (ยาก)</span>
+          <span class="pixel-font" style="font-size: 11px;">❤️ 3 | 7x7 Grid</span>
+        </button>
+        <button class="mc-btn red" onclick="App.selectDifficulty('hardcore')" style="justify-content: space-between;">
+          <span>💀 Hardcore (ท้าทายสุดขีด)</span>
+          <span class="pixel-font" style="font-size: 11px; color: #ffeb3b;">❤️ 1 | 8x8 Grid</span>
+        </button>
+      </div>
+
+      <button class="mc-btn" onclick="App.showScreen('menu')">
+        ⬅ ย้อนกลับไปเมนูหลัก
+      </button>
+    </div>
+  </div>
+
+  <div id="screen-game" class="screen">
+    <div id="game-layout">
+      <!-- 3D Canvas Area -->
+      <div id="canvas-container">
+        <!-- Floating HUD -->
+        <div class="hud-bar">
+          <div class="mc-panel" style="padding: 6px 14px; display: flex; align-items: center; gap: 10px;">
+            <span class="pixel-font" style="font-size: 12px; color: #fff; text-shadow: 1px 1px #000;" id="hud-level">
+              STAGE 1/10
+            </span>
+            <span id="hud-time-tag" style="font-size: 11px; font-weight: 700; background: #ffe600; padding: 2px 6px; border-radius: 4px; color: #222;">
+              ☀️ กลางวัน (Day)
+            </span>
+          </div>
+
+          <div class="mc-panel" style="padding: 6px 14px; display: flex; align-items: center;" id="hud-hearts">
+            <!-- Render hearts dynamically -->
+          </div>
+
+          <button class="mc-btn" onclick="App.showScreen('menu')" style="padding: 6px 10px; font-size: 12px;">
+            🏠 เมนู
+          </button>
+        </div>
+      </div>
+
+      <div id="sidebar">
+        <div>
+          <h3 class="pixel-font" style="font-size: 13px; color: #222; margin-bottom: 4px;">
+            CODING SEQUENCE
+          </h3>
+          <p style="font-size: 12px; color: #444; font-weight: 600;">
+            วางแผนอัลกอริทึมพาตัวละครไปที่บล็อกเพชร 💎
+          </p>
+        </div>
+
+        <!-- Command Palette Buttons -->
+        <div style="display: grid; grid-cols-2; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button class="mc-btn blue" onclick="App.addCommand('FORWARD')">
+            ⬆️ เดินหน้า
+          </button>
+          <button class="mc-btn" onclick="App.addCommand('TURN_LEFT')">
+            ↩️ หันซ้าย
+          </button>
+          <button class="mc-btn" onclick="App.addCommand('TURN_RIGHT')">
+            ↪️ หันขวา
+          </button>
+          <button class="mc-btn red" onclick="App.removeLastCommand()">
+            🗑️ ลบคำสั่ง
+          </button>
+        </div>
+
+        <!-- Sequence Queue Display Box -->
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 12px; font-weight: 700; color: #333;">
+            ลำดับคำสั่งที่เลือก (<span id="cmd-count">0</span>):
+          </span>
+          <button onclick="App.clearCommands()" style="background: none; border: none; font-size: 11px; font-weight: 700; color: #b71c1c; cursor: pointer; text-decoration: underline;">
+            ล้างคำสั่งทั้งหมด
+          </button>
+        </div>
+
+        <div id="command-list" class="command-queue">
+          <!-- Dynamic Command chips injected here -->
+        </div>
+
+        <!-- Execution Action Buttons -->
+        <div style="display: flex; gap: 8px; margin-top: auto;">
+          <button id="btn-reset-pos" class="mc-btn" onclick="App.resetPlayerPosition()" style="flex: 1;">
+            🔄 วางตำแหน่งใหม่
+          </button>
+          <button id="btn-run" class="mc-btn green" onclick="App.executeProgram()" style="flex: 1.4; font-size: 16px;">
+            ▶️ ประมวลผล
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-help" class="modal-overlay">
+    <div class="mc-panel modal-content">
+      <h2 class="pixel-font" style="font-size: 16px; margin-bottom: 12px; color: #222;">
+        📖 วิธีเล่นและทักษะที่ได้
+      </h2>
+      <div style="text-align: left; font-size: 13px; line-height: 1.6; color: #333; margin-bottom: 18px; max-height: 320px; overflow-y: auto; padding-right: 6px;">
+        <p><strong>🎯 เป้าหมาย:</strong> วางแผนป้อนคำสั่งเดินหน้าและหมุนตัวละครสไตล์ Voxel ให้เดินฝ่าอุปสรรคไปยัง <strong>บล็อกเพชร (Diamond Block)</strong> ได้อย่างปลอดภัย!</p>
+        <br>
+        <p><strong>🧠 ทักษะการคิดเชิงคำนวณ (Computational Thinking):</strong></p>
+        <ul style="padding-left: 20px; margin-top: 4px;">
+          <li><strong>Decomposition:</strong> ย่อยการเดินทางไกลเป็นก้าวเล็ก ๆ ทีละช่อง</li>
+          <li><strong>Algorithm Design:</strong> วางแผนลำดับขั้นตอนอย่างเป็นระบบ (Sequence)</li>
+          <li><strong>Debugging:</strong> หากเดินชนสิ่งกีดขวางหรือตกขอบ ต้องตรวจสอบหาจุดผิดพลาดแล้วแก้ไขชุดคำสั่ง</li>
+        </ul>
+        <br>
+        <p><strong>🌗 ระบบกลางวัน / กลางคืน:</strong></p>
+        <p>ในแต่ละด่านจะสลับกลางวันและกลางคืน สิ่งกีดขวางในแผนที่จะเปลี่ยนไป: ตอนกลางวันพบชาวบ้าน โกเลม ต้นไม้ และก้อนหิน ส่วนตอนกลางคืนจะเผชิญหน้ากับซอมบี้ สเกลตัน ครีปเปอร์ และเอนเดอร์แมน!</p>
+      </div>
+      <button class="mc-btn green" onclick="App.toggleHelpModal(false)">
+        รับทราบและพร้อมลุย! ✨
+      </button>
+    </div>
+  </div>
+
+  <div id="modal-message" class="modal-overlay">
+    <div class="mc-panel modal-content" id="modal-msg-box">
+      <div id="msg-icon" style="font-size: 48px; margin-bottom: 10px;">🎉</div>
+      <h2 id="msg-title" class="pixel-font" style="font-size: 18px; margin-bottom: 10px; color: #222;">
+        สำเร็จแล้ว!
+      </h2>
+      <p id="msg-desc" style="font-size: 14px; font-weight: 600; color: #444; margin-bottom: 20px;">
+        คำอธิบายผลลัพธ์
+      </p>
+      <div id="msg-buttons" style="display: flex; gap: 10px; justify-content: center;">
+        <!-- Buttons injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const Sound = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      },
+      playClick() {
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+        osc.start(); osc.stop(this.ctx.currentTime + 0.05);
+      },
+      playStep() {
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(80, this.ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+        osc.start(); osc.stop(this.ctx.currentTime + 0.08);
+      },
+      playTurn() {
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(320, this.ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(480, this.ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+        osc.start(); osc.stop(this.ctx.currentTime + 0.1);
+      },
+      playHurt() {
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+        osc.start(); osc.stop(this.ctx.currentTime + 0.25);
+      },
+      playWin() {
+        this.init();
+        const notes = [261.63, 329.63, 392.00, 523.25];
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.connect(gain); gain.connect(this.ctx.destination);
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.1);
+          gain.gain.setValueAtTime(0.15, this.ctx.currentTime + idx * 0.1);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.1 + 0.2);
+          osc.start(this.ctx.currentTime + idx * 0.1);
+          osc.stop(this.ctx.currentTime + idx * 0.1 + 0.2);
+        });
+      }
+    };
+
+    const TextureGen = {
+      createPixelCanvas(width, height, drawFn) {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        drawFn(ctx, width, height);
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.magFilter = THREE.NearestFilter;
+        texture.minFilter = THREE.NearestFilter;
+        return texture;
+      },
+      getGrassTop() {
+        return this.createPixelCanvas(16, 16, (ctx, w, h) => {
+          ctx.fillStyle = '#5c8e32';
+          ctx.fillRect(0, 0, w, h);
+          for (let i = 0; i < 40; i++) {
+            ctx.fillStyle = Math.random() > 0.5 ? '#4e7b28' : '#6ba43b';
+            ctx.fillRect(Math.floor(Math.random() * w), Math.floor(Math.random() * h), 1, 1);
+          }
+        });
+      },
+      getGrassSide() {
+        return this.createPixelCanvas(16, 16, (ctx, w, h) => {
+          ctx.fillStyle = '#866043';
+          ctx.fillRect(0, 0, w, h);
+          for (let i = 0; i < 50; i++) {
+            ctx.fillStyle = Math.random() > 0.5 ? '#735137' : '#9c7253';
+            ctx.fillRect(Math.floor(Math.random() * w), Math.floor(Math.random() * h), 1, 1);
+          }
+          // Top green trim
+          ctx.fillStyle = '#5c8e32';
+          ctx.fillRect(0, 0, w, 4);
+          for (let x = 0; x < w; x++) {
+            const drop = Math.floor(Math.random() * 3);
+            ctx.fillRect(x, 4, 1, drop);
+          }
+        });
+      },
+      getDirt() {
+        return this.createPixelCanvas(16, 16, (ctx, w, h) => {
+          ctx.fillStyle = '#866043';
+          ctx.fillRect(0, 0, w, h);
+          for (let i = 0; i < 50; i++) {
+            ctx.fillStyle = Math.random() > 0.5 ? '#735137' : '#9c7253';
+            ctx.fillRect(Math.floor(Math.random() * w), Math.floor(Math.random() * h), 1, 1);
+          }
+        });
+      },
+      getStone() {
+        return this.createPixelCanvas(16, 16, (ctx, w, h) => {
+          ctx.fillStyle = '#737373';
+          ctx.fillRect(0, 0, w, h);
+          for (let i = 0; i < 50; i++) {
+            ctx.fillStyle = Math.random() > 0.5 ? '#5e5e5e' : '#8a8a8a';
+            ctx.fillRect(Math.floor(Math.random() * w), Math.floor(Math.random() * h), 1, 1);
+          }
+        });
+      },
+      getDiamond() {
+        return this.createPixelCanvas(16, 16, (ctx, w, h) => {
+          ctx.fillStyle = '#55ffff';
+          ctx.fillRect(0, 0, w, h);
+          ctx.fillStyle = '#2bbbbb';
+          ctx.fillRect(1, 1, 14, 14);
+          ctx.fillStyle = '#e0ffff';
+          ctx.fillRect(3, 3, 10, 10);
+          ctx.fillStyle = '#00cccc';
+          ctx.fillRect(5, 5, 6, 6);
+        });
+      }
+    };
+
+    const App = {
+      difficulty: 'easy',
+      currentLevel: 1,
+      maxLevels: 10,
+      hearts: 3,
+      maxHearts: 3,
+      gridSize: 5,
+      commands: [],
+      isExecuting: false,
+
+      // Three.js instances
+      scene: null,
+      camera: null,
+      renderer: null,
+      ambientLight: null,
+      dirLight: null,
+      player: null,
+      gridGroup: null,
+      obstaclesGroup: null,
+      goalMesh: null,
+
+      // Player Grid Coordinates & Direction
+      playerGrid: { x: 0, z: 0 },
+      playerDirection: 0, // 0: +X, 1: +Z, 2: -X, 3: -Z
+      goalGrid: { x: 4, z: 4 },
+      gridMap: [], // 2D array representation
+
+      // Limb swing state for walking animation
+      isWalking: false,
+      walkCycleTime: 0,
+
+      init() {
+        this.setupThree();
+        this.updateHUD();
+        window.addEventListener('resize', () => this.onWindowResize());
+      },
+
+      setupThree() {
+        const container = document.getElementById('canvas-container');
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color('#78a7ff');
+
+        const aspect = container.clientWidth / container.clientHeight;
+        const d = 8;
+        this.camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
+        this.camera.position.set(20, 24, 20);
+        this.camera.lookAt(0, 0, 0);
+
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        this.renderer.setSize(container.clientWidth, container.clientHeight);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(this.renderer.domElement);
+
+        // Lighting
+        this.ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+        this.scene.add(this.ambientLight);
+
+        this.dirLight = new THREE.DirectionalLight(0xfffaed, 0.85);
+        this.dirLight.position.set(15, 25, 10);
+        this.dirLight.castShadow = true;
+        this.dirLight.shadow.mapSize.width = 1024;
+        this.dirLight.shadow.mapSize.height = 1024;
+        this.scene.add(this.dirLight);
+
+        this.gridGroup = new THREE.Group();
+        this.obstaclesGroup = new THREE.Group();
+        this.scene.add(this.gridGroup);
+        this.scene.add(this.obstaclesGroup);
+
+        this.createPlayer();
+        this.animate();
+      },
+
+      createPlayer() {
+        this.player = new THREE.Group();
+
+        // Steve Head
+        const headGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+        const skinMat = new THREE.MeshLambertMaterial({ color: '#c99166' });
+        const hairMat = new THREE.MeshLambertMaterial({ color: '#4a3219' });
+        const headMaterials = [skinMat, skinMat, hairMat, skinMat, skinMat, skinMat];
+        const head = new THREE.Mesh(headGeo, headMaterials);
+        head.position.y = 1.05;
+        head.castShadow = true;
+        this.player.add(head);
+
+        // Steve Eyes
+        const eyeGeo = new THREE.BoxGeometry(0.1, 0.06, 0.02);
+        const eyeWhite = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+        const eyeBlue = new THREE.MeshBasicMaterial({ color: '#2a52be' });
+        const leftEye = new THREE.Mesh(eyeGeo, eyeWhite);
+        leftEye.position.set(0.12, 1.05, 0.26);
+        const leftPupil = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.025), eyeBlue);
+        leftPupil.position.set(0.14, 1.05, 0.26);
+        this.player.add(leftEye);
+        this.player.add(leftPupil);
+
+        const rightEye = new THREE.Mesh(eyeGeo, eyeWhite);
+        rightEye.position.set(-0.12, 1.05, 0.26);
+        const rightPupil = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.025), eyeBlue);
+        rightPupil.position.set(-0.10, 1.05, 0.26);
+        this.player.add(rightEye);
+        this.player.add(rightPupil);
+
+        // Torso / Body (Cyan Shirt)
+        const bodyGeo = new THREE.BoxGeometry(0.5, 0.6, 0.28);
+        const bodyMat = new THREE.MeshLambertMaterial({ color: '#00a3a3' });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.55;
+        body.castShadow = true;
+        this.player.add(body);
+
+        // Arms (Pivots at shoulders)
+        const armGeo = new THREE.BoxGeometry(0.2, 0.6, 0.2);
+        const armMat = new THREE.MeshLambertMaterial({ color: '#00a3a3' });
+
+        this.leftArmPivot = new THREE.Group();
+        this.leftArmPivot.position.set(0.35, 0.8, 0);
+        const leftArm = new THREE.Mesh(armGeo, armMat);
+        leftArm.position.y = -0.25;
+        leftArm.castShadow = true;
+        this.leftArmPivot.add(leftArm);
+        this.player.add(this.leftArmPivot);
+
+        this.rightArmPivot = new THREE.Group();
+        this.rightArmPivot.position.set(-0.35, 0.8, 0);
+        const rightArm = new THREE.Mesh(armGeo, armMat);
+        rightArm.position.y = -0.25;
+        rightArm.castShadow = true;
+        this.rightArmPivot.add(rightArm);
+        this.player.add(this.rightArmPivot);
+
+        // Legs (Pivots at hips, Blue Jeans)
+        const legGeo = new THREE.BoxGeometry(0.22, 0.6, 0.24);
+        const legMat = new THREE.MeshLambertMaterial({ color: '#253582' });
+
+        this.leftLegPivot = new THREE.Group();
+        this.leftLegPivot.position.set(0.12, 0.3, 0);
+        const leftLeg = new THREE.Mesh(legGeo, legMat);
+        leftLeg.position.y = -0.25;
+        leftLeg.castShadow = true;
+        this.leftLegPivot.add(leftLeg);
+        this.player.add(this.leftLegPivot);
+
+        this.rightLegPivot = new THREE.Group();
+        this.rightLegPivot.position.set(-0.12, 0.3, 0);
+        const rightLeg = new THREE.Mesh(legGeo, legMat);
+        rightLeg.position.y = -0.25;
+        rightLeg.castShadow = true;
+        this.rightLegPivot.add(rightLeg);
+        this.player.add(this.rightLegPivot);
+
+        this.scene.add(this.player);
+      },
+
+      createVoxelObstacle(type) {
+        const group = new THREE.Group();
+
+        if (type === 'tree') {
+          // Oak Tree: Trunk + Leaves
+          const trunkGeo = new THREE.BoxGeometry(0.4, 1.2, 0.4);
+          const trunkMat = new THREE.MeshLambertMaterial({ color: '#684a2b' });
+          const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+          trunk.position.y = 0.6;
+          trunk.castShadow = true;
+          group.add(trunk);
+
+          const leavesGeo = new THREE.BoxGeometry(1.0, 0.9, 1.0);
+          const leavesMat = new THREE.MeshLambertMaterial({ color: '#387324' });
+          const leaves = new THREE.Mesh(leavesGeo, leavesMat);
+          leaves.position.y = 1.35;
+          leaves.castShadow = true;
+          group.add(leaves);
+        } else if (type === 'stone') {
+          // Cobblestone Block
+          const stoneGeo = new THREE.BoxGeometry(0.85, 0.85, 0.85);
+          const stoneMat = new THREE.MeshLambertMaterial({ map: TextureGen.getStone() });
+          const stone = new THREE.Mesh(stoneGeo, stoneMat);
+          stone.position.y = 0.42;
+          stone.castShadow = true;
+          group.add(stone);
+        } else if (type === 'villager') {
+          // Villager: Brown Robe + Big Nose
+          const bodyGeo = new THREE.BoxGeometry(0.45, 0.75, 0.35);
+          const robeMat = new THREE.MeshLambertMaterial({ color: '#6d4c33' });
+          const body = new THREE.Mesh(bodyGeo, robeMat);
+          body.position.y = 0.45;
+          group.add(body);
+
+          const headGeo = new THREE.BoxGeometry(0.4, 0.45, 0.4);
+          const skinMat = new THREE.MeshLambertMaterial({ color: '#bd8b72' });
+          const head = new THREE.Mesh(headGeo, skinMat);
+          head.position.y = 0.95;
+          group.add(head);
+
+          const noseGeo = new THREE.BoxGeometry(0.12, 0.22, 0.15);
+          const nose = new THREE.Mesh(noseGeo, skinMat);
+          nose.position.set(0, 0.9, 0.25);
+          group.add(nose);
+        } else if (type === 'iron_golem') {
+          // Iron Golem: Large bulky body
+          const bodyGeo = new THREE.BoxGeometry(0.8, 0.8, 0.5);
+          const golemMat = new THREE.MeshLambertMaterial({ color: '#d8d4cb' });
+          const body = new THREE.Mesh(bodyGeo, golemMat);
+          body.position.y = 0.6;
+          group.add(body);
+
+          const headGeo = new THREE.BoxGeometry(0.35, 0.4, 0.35);
+          const head = new THREE.Mesh(headGeo, golemMat);
+          head.position.y = 1.1;
+          group.add(head);
+        } else if (type === 'creeper') {
+          // Creeper: Green Body & Legs
+          const bodyGeo = new THREE.BoxGeometry(0.4, 0.7, 0.25);
+          const creeperMat = new THREE.MeshLambertMaterial({ color: '#2e9e38' });
+          const body = new THREE.Mesh(bodyGeo, creeperMat);
+          body.position.y = 0.45;
+          group.add(body);
+
+          const headGeo = new THREE.BoxGeometry(0.45, 0.45, 0.45);
+          const head = new THREE.Mesh(headGeo, creeperMat);
+          head.position.y = 0.95;
+          group.add(head);
+
+          // Face markings (black eyes & mouth)
+          const markGeo = new THREE.BoxGeometry(0.3, 0.25, 0.05);
+          const blackMat = new THREE.MeshBasicMaterial({ color: '#151515' });
+          const face = new THREE.Mesh(markGeo, blackMat);
+          face.position.set(0, 0.93, 0.24);
+          group.add(face);
+        } else if (type === 'zombie') {
+          // Zombie: Green Skin + Blue Shirt + Purple Pants
+          const bodyGeo = new THREE.BoxGeometry(0.45, 0.55, 0.26);
+          const shirtMat = new THREE.MeshLambertMaterial({ color: '#00a8a8' });
+          const body = new THREE.Mesh(bodyGeo, shirtMat);
+          body.position.y = 0.55;
+          group.add(body);
+
+          const headGeo = new THREE.BoxGeometry(0.45, 0.45, 0.45);
+          const skinMat = new THREE.MeshLambertMaterial({ color: '#4d8036' });
+          const head = new THREE.Mesh(headGeo, skinMat);
+          head.position.y = 1.0;
+          group.add(head);
+
+          // Outstretched Zombie Arms
+          const armGeo = new THREE.BoxGeometry(0.18, 0.18, 0.55);
+          const arm1 = new THREE.Mesh(armGeo, shirtMat);
+          arm1.position.set(0.28, 0.7, 0.25);
+          const arm2 = new THREE.Mesh(armGeo, shirtMat);
+          arm2.position.set(-0.28, 0.7, 0.25);
+          group.add(arm1);
+          group.add(arm2);
+        } else if (type === 'skeleton') {
+          // Skeleton: Light grey bony frame
+          const boneMat = new THREE.MeshLambertMaterial({ color: '#c2c2c2' });
+          const body = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.55, 0.2), boneMat);
+          body.position.y = 0.55;
+          group.add(body);
+
+          const head = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 0.45), boneMat);
+          head.position.y = 1.0;
+          group.add(head);
+        } else if (type === 'enderman') {
+          // Enderman: Tall skinny black body with glowing eyes
+          const blackMat = new THREE.MeshLambertMaterial({ color: '#111111' });
+          const purpleMat = new THREE.MeshBasicMaterial({ color: '#d054ff' });
+          const body = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.9, 0.2), blackMat);
+          body.position.y = 0.75;
+          group.add(body);
+
+          const head = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.35), blackMat);
+          head.position.y = 1.35;
+          group.add(head);
+
+          // Purple Glowing Eyes
+          const eye1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.03, 0.03), purpleMat);
+          eye1.position.set(0.08, 1.35, 0.18);
+          const eye2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.03, 0.03), purpleMat);
+          eye2.position.set(-0.08, 1.35, 0.18);
+          group.add(eye1);
+          group.add(eye2);
+        }
+
+        return group;
+      },
+
+      buildLevelMap() {
+        // Clear previous grid meshes & obstacles
+        while (this.gridGroup.children.length > 0) {
+          this.gridGroup.remove(this.gridGroup.children[0]);
+        }
+        while (this.obstaclesGroup.children.length > 0) {
+          this.obstaclesGroup.remove(this.obstaclesGroup.children[0]);
+        }
+
+        const size = this.gridSize;
+        const isNight = this.isNightTime();
+        this.updateAtmosphere(isNight);
+
+        // Initialize empty grid matrix
+        this.gridMap = Array(size).fill(null).map(() => Array(size).fill(0));
+
+        // Start point is always (0, 0)
+        this.playerGrid = { x: 0, z: 0 };
+        this.playerDirection = 0; // facing +X (East)
+        
+        // Goal is at opposite corner (size-1, size-1)
+        this.goalGrid = { x: size - 1, z: size - 1 };
+
+        // 1. CARVE GUARANTEED VALID PATH from Start to Goal
+        let curX = 0, curZ = 0;
+        const pathCells = new Set();
+        pathCells.add(`${curX},${curZ}`);
+
+        while (curX < size - 1 || curZ < size - 1) {
+          const moveX = (curX < size - 1) && (curZ >= size - 1 || Math.random() > 0.45);
+          if (moveX) {
+            curX++;
+          } else {
+            curZ++;
+          }
+          pathCells.add(`${curX},${curZ}`);
+        }
+
+        // 2. OBSTACLE POOL BASED ON DAY / NIGHT
+        const dayObstacles = ['tree', 'stone', 'villager', 'iron_golem'];
+        const nightObstacles = ['zombie', 'skeleton', 'creeper', 'enderman'];
+        const availableObstacles = isNight ? nightObstacles : dayObstacles;
+
+        // 3. GENERATE VOXEL BLOCKS AND OBSTACLES
+        const grassTop = TextureGen.getGrassTop();
+        const grassSide = TextureGen.getGrassSide();
+        const dirt = TextureGen.getDirt();
+        const blockGeo = new THREE.BoxGeometry(1, 1, 1);
+
+        const blockMaterials = [
+          new THREE.MeshLambertMaterial({ map: grassSide }),
+          new THREE.MeshLambertMaterial({ map: grassSide }),
+          new THREE.MeshLambertMaterial({ map: grassTop }),
+          new THREE.MeshLambertMaterial({ map: dirt }),
+          new THREE.MeshLambertMaterial({ map: grassSide }),
+          new THREE.MeshLambertMaterial({ map: grassSide })
+        ];
+
+        const offset = (size - 1) / 2;
+
+        for (let x = 0; x < size; x++) {
+          for (let z = 0; z < size; z++) {
+            const posX = x - offset;
+            const posZ = z - offset;
+
+            // Ground Voxel
+            const ground = new THREE.Mesh(blockGeo, blockMaterials);
+            ground.position.set(posX, -0.5, posZ);
+            ground.receiveShadow = true;
+            this.gridGroup.add(ground);
+
+            // Goal Diamond Block
+            if (x === this.goalGrid.x && z === this.goalGrid.z) {
+              const diaMat = new THREE.MeshLambertMaterial({ map: TextureGen.getDiamond() });
+              const goalBox = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.85, 0.85), diaMat);
+              goalBox.position.set(posX, 0.42, posZ);
+              goalBox.castShadow = true;
+              this.goalMesh = goalBox;
+              this.obstaclesGroup.add(goalBox);
+            }
+            // Check obstacle placement in non-path cells
+            else if (!pathCells.has(`${x},${z}`)) {
+              const placeChance = 0.35 + (this.currentLevel * 0.025);
+              if (Math.random() < placeChance) {
+                this.gridMap[x][z] = 1; // Mark blocked
+                const obsType = availableObstacles[Math.floor(Math.random() * availableObstacles.length)];
+                const obsMesh = this.createVoxelObstacle(obsType);
+                obsMesh.position.set(posX, 0, posZ);
+                this.obstaclesGroup.add(obsMesh);
+              }
+            }
+          }
+        }
+
+        // Adjust Camera zoom depending on grid size
+        const d = size * 1.5;
+        const aspect = this.renderer.domElement.clientWidth / this.renderer.domElement.clientHeight;
+        this.camera.left = -d * aspect;
+        this.camera.right = d * aspect;
+        this.camera.top = d;
+        this.camera.bottom = -d;
+        this.camera.updateProjectionMatrix();
+
+        // Place Player at starting cell
+        this.updatePlayerMeshTransform(false);
+      },
+
+      isNightTime() {
+        // Levels 2, 4, 6, 8, 10 are Night. Levels 1, 3, 5, 7, 9 are Day.
+        return this.currentLevel % 2 === 0;
+      },
+
+      updateAtmosphere(isNight) {
+        const hudTag = document.getElementById('hud-time-tag');
+        if (isNight) {
+          this.scene.background = new THREE.Color('#0c1427');
+          this.ambientLight.color.setHex(0x3a4b75);
+          this.ambientLight.intensity = 0.55;
+          this.dirLight.color.setHex(0x829eff);
+          this.dirLight.intensity = 0.6;
+          hudTag.innerHTML = '🌙 กลางคืน (Night)';
+          hudTag.style.background = '#4a148c';
+          hudTag.style.color = '#fff';
+        } else {
+          this.scene.background = new THREE.Color('#78a7ff');
+          this.ambientLight.color.setHex(0xffffff);
+          this.ambientLight.intensity = 0.8;
+          this.dirLight.color.setHex(0xfffaed);
+          this.dirLight.intensity = 0.9;
+          hudTag.innerHTML = '☀️ กลางวัน (Day)';
+          hudTag.style.background = '#ffe600';
+          hudTag.style.color = '#222';
+        }
+      },
+
+      updatePlayerMeshTransform(animateLerp = false) {
+        const offset = (this.gridSize - 1) / 2;
+        const targetX = this.playerGrid.x - offset;
+        const targetZ = this.playerGrid.z - offset;
+        const targetRotationY = -this.playerDirection * (Math.PI / 2);
+
+        if (!animateLerp) {
+          this.player.position.set(targetX, 0, targetZ);
+          this.player.rotation.y = targetRotationY;
+        }
+      },
+
+      addCommand(type) {
+        if (this.isExecuting) return;
+        Sound.playClick();
+        this.commands.push(type);
+        this.renderCommandList();
+      },
+
+      removeLastCommand() {
+        if (this.isExecuting || this.commands.length === 0) return;
+        Sound.playClick();
+        this.commands.pop();
+        this.renderCommandList();
+      },
+
+      clearCommands() {
+        if (this.isExecuting) return;
+        Sound.playClick();
+        this.commands = [];
+        this.renderCommandList();
+      },
+
+      renderCommandList() {
+        const container = document.getElementById('command-list');
+        const count = document.getElementById('cmd-count');
+        count.innerText = this.commands.length;
+        container.innerHTML = '';
+
+        const labels = {
+          FORWARD: { text: 'เดินหน้า (Forward)', icon: '⬆️' },
+          TURN_LEFT: { text: 'หันซ้าย (Turn Left)', icon: '↩️' },
+          TURN_RIGHT: { text: 'หันขวา (Turn Right)', icon: '↪️' }
+        };
+
+        this.commands.forEach((cmd, idx) => {
+          const item = document.createElement('div');
+          item.className = 'command-chip';
+          item.id = `cmd-chip-${idx}`;
+          item.innerHTML = `
+            <span><strong>${idx + 1}.</strong> ${labels[cmd].icon} ${labels[cmd].text}</span>
+            <span style="font-size: 10px; color: #555;">#${idx + 1}</span>
+          `;
+          container.appendChild(item);
+        });
+
+        container.scrollTop = container.scrollHeight;
+      },
+
+      async executeProgram() {
+        if (this.isExecuting || this.commands.length === 0) return;
+        this.isExecuting = true;
+        this.setUIExecutionState(true);
+
+        const dirVectors = [
+          { dx: 1, dz: 0 },  // 0: +X
+          { dx: 0, dz: 1 },  // 1: +Z
+          { dx: -1, dz: 0 }, // 2: -X
+          { dx: 0, dz: -1 }  // 3: -Z
+        ];
+
+        for (let i = 0; i < this.commands.length; i++) {
+          // Highlight current executing command chip
+          document.querySelectorAll('.command-chip').forEach(c => c.classList.remove('active-step'));
+          const currentChip = document.getElementById(`cmd-chip-${i}`);
+          if (currentChip) currentChip.classList.add('active-step');
+
+          const cmd = this.commands[i];
+
+          if (cmd === 'FORWARD') {
+            const nextX = this.playerGrid.x + dirVectors[this.playerDirection].dx;
+            const nextZ = this.playerGrid.z + dirVectors[this.playerDirection].dz;
+
+            // Check Grid Boundaries (Falling out of world)
+            if (nextX < 0 || nextX >= this.gridSize || nextZ < 0 || nextZ >= this.gridSize) {
+              await this.animateFallOut();
+              this.handleFailedAttempt("ตัวละครตกขอบโลก! ระวังการกำหนดทิศทางและระยะก้าว");
+              return;
+            }
+
+            // Check Obstacle Collision
+            if (this.gridMap[nextX][nextZ] === 1) {
+              await this.animateHitObstacle(nextX, nextZ);
+              this.handleFailedAttempt("เดินชนสิ่งกีดขวาง! ตรวจสอบเส้นทางเพื่อเลี่ยงอุปสรรค");
+              return;
+            }
+
+            // Valid Move Forward
+            await this.animateMoveForward(nextX, nextZ);
+            this.playerGrid.x = nextX;
+            this.playerGrid.z = nextZ;
+
+            // Check Reaching Goal Diamond
+            if (this.playerGrid.x === this.goalGrid.x && this.playerGrid.y === this.goalGrid.y && this.playerGrid.z === this.goalGrid.z ||
+               (this.playerGrid.x === this.goalGrid.x && this.playerGrid.z === this.goalGrid.z)) {
+              this.handleWinLevel();
+              return;
+            }
+          } else if (cmd === 'TURN_LEFT') {
+            await this.animateTurn(-1);
+            this.playerDirection = (this.playerDirection + 3) % 4;
+          } else if (cmd === 'TURN_RIGHT') {
+            await this.animateTurn(1);
+            this.playerDirection = (this.playerDirection + 1) % 4;
+          }
+
+          // Inter-step pause
+          await new Promise(r => setTimeout(r, 120));
+        }
+
+        // Program finished without reaching diamond
+        document.querySelectorAll('.command-chip').forEach(c => c.classList.remove('active-step'));
+        this.setUIExecutionState(false);
+        this.isExecuting = false;
+
+        this.showModalDialog({
+          icon: '🤔',
+          title: 'ยังไม่ถึงเป้าหมาย!',
+          desc: 'รหัสคำสั่งทำงานครบแล้ว แต่ยังไม่ถึงบล็อกเพชร ลองเพิ่มคำสั่งหรือปรับปรุงอัลกอริทึมดูนะ!',
+          buttons: [
+            { text: 'ปรับปรุงโค้ด', class: 'green', action: () => this.hideModal() }
+          ]
+        });
+      },
+
+      animateMoveForward(nextX, nextZ) {
+        Sound.playStep();
+        this.isWalking = true;
+        const offset = (this.gridSize - 1) / 2;
+        const startX = this.player.position.x;
+        const startZ = this.player.position.z;
+        const targetX = nextX - offset;
+        const targetZ = nextZ - offset;
+        const duration = 320; // ms
+
+        return new Promise(resolve => {
+          const startTime = performance.now();
+          const step = (now) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            // Ease out quad
+            const ease = 1 - (1 - progress) * (1 - progress);
+
+            this.player.position.x = THREE.MathUtils.lerp(startX, targetX, ease);
+            this.player.position.z = THREE.MathUtils.lerp(startZ, targetZ, ease);
+
+            // Small hop while walking
+            this.player.position.y = Math.sin(progress * Math.PI) * 0.15;
+
+            if (progress < 1) {
+              requestAnimationFrame(step);
+            } else {
+              this.player.position.set(targetX, 0, targetZ);
+              this.isWalking = false;
+              this.resetLimbs();
+              resolve();
+            }
+          };
+          requestAnimationFrame(step);
+        });
+      },
+
+      animateTurn(directionDelta) {
+        Sound.playTurn();
+        const startRot = this.player.rotation.y;
+        const targetRot = startRot - directionDelta * (Math.PI / 2);
+        const duration = 220; // ms
+
+        return new Promise(resolve => {
+          const startTime = performance.now();
+          const step = (now) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const ease = 1 - (1 - progress) * (1 - progress);
+
+            this.player.rotation.y = THREE.MathUtils.lerp(startRot, targetRot, ease);
+
+            if (progress < 1) {
+              requestAnimationFrame(step);
+            } else {
+              this.player.rotation.y = targetRot;
+              resolve();
+            }
+          };
+          requestAnimationFrame(step);
+        });
+      },
+
+      animateHitObstacle(hitX, hitZ) {
+        Sound.playHurt();
+        const offset = (this.gridSize - 1) / 2;
+        const origX = this.player.position.x;
+        const origZ = this.player.position.z;
+        const bumpX = THREE.MathUtils.lerp(origX, hitX - offset, 0.35);
+        const bumpZ = THREE.MathUtils.lerp(origZ, hitZ - offset, 0.35);
+
+        return new Promise(resolve => {
+          // Flash red
+          this.renderer.domElement.style.filter = 'drop-shadow(0 0 20px #ff0000)';
+          setTimeout(() => this.player.position.set(bumpX, 0.1, bumpZ), 50);
+          setTimeout(() => {
+            this.player.position.set(origX, 0, origZ);
+            this.renderer.domElement.style.filter = 'none';
+            resolve();
+          }, 240);
+        });
+      },
+
+      animateFallOut() {
+        Sound.playHurt();
+        return new Promise(resolve => {
+          const startY = this.player.position.y;
+          const startTime = performance.now();
+          const step = (now) => {
+            const elapsed = now - startTime;
+            this.player.position.y = startY - (elapsed * 0.015);
+            this.player.rotation.x += 0.08;
+            if (elapsed < 400) {
+              requestAnimationFrame(step);
+            } else {
+              resolve();
+            }
+          };
+          requestAnimationFrame(step);
+        });
+      },
+
+      resetLimbs() {
+        if (this.leftArmPivot) this.leftArmPivot.rotation.x = 0;
+        if (this.rightArmPivot) this.rightArmPivot.rotation.x = 0;
+        if (this.leftLegPivot) this.leftLegPivot.rotation.x = 0;
+        if (this.rightLegPivot) this.rightLegPivot.rotation.x = 0;
+      },
+
+      handleWinLevel() {
+        Sound.playWin();
+        this.setUIExecutionState(false);
+        this.isExecuting = false;
+
+        const isGameComplete = this.currentLevel >= this.maxLevels;
+
+        if (isGameComplete) {
+          this.showModalDialog({
+            icon: '🏆',
+            title: 'สุดยอดปรมาจารย์โค้ดดิ้ง!',
+            desc: 'ยินดีด้วย! หนูสามารถพิชิตภารกิจครบทั้ง 10 ด่าน ได้ทักษะการคิดเชิงคำนวณและแก้ปัญหาอย่างสมบูรณ์แบบ!',
+            buttons: [
+              { text: 'เล่นใหม่อีกครั้ง', class: 'green', action: () => { this.hideModal(); this.restartGame(); } },
+              { text: 'เมนูหลัก', class: 'blue', action: () => { this.hideModal(); this.showScreen('menu'); } }
+            ]
+          });
+        } else {
+          this.showModalDialog({
+            icon: '💎',
+            title: `ผ่านด่านที่ ${this.currentLevel} สำเร็จ!`,
+            desc: 'อัลกอริทึมของคุณทำงานได้อย่างแม่นยำ! พร้อมไปท้าทายด่านต่อไปหรือยัง?',
+            buttons: [
+              {
+                text: 'ลุยด่านต่อไป 🚀',
+                class: 'green',
+                action: () => {
+                  this.hideModal();
+                  this.nextLevel();
+                }
+              }
+            ]
+          });
+        }
+      },
+
+      handleFailedAttempt(reasonMsg) {
+        this.setUIExecutionState(false);
+        this.isExecuting = false;
+        this.hearts--;
+        this.updateHUD();
+
+        if (this.hearts <= 0) {
+          this.showModalDialog({
+            icon: '💀',
+            title: 'GAME OVER (หัวใจหมด)',
+            desc: 'หัวใจหมดแล้ว! อย่ายอมแพ้ การเขียนโปรแกรมคือการเรียนรู้จากข้อผิดพลาด (Debugging)',
+            buttons: [
+              { text: 'เริ่มใหม่ในระดับนี้', class: 'green', action: () => { this.hideModal(); this.restartGame(); } },
+              { text: 'กลับสู่เมนูหลัก', class: 'blue', action: () => { this.hideModal(); this.showScreen('menu'); } }
+            ]
+          });
+        } else {
+          this.showModalDialog({
+            icon: '⚠️',
+            title: 'ผิดพลาด! เสีย 1 หัวใจ',
+            desc: `${reasonMsg} (เหลือหัวใจ: ${this.hearts})`,
+            buttons: [
+              {
+                text: 'ลองแก้บั๊กใหม่ 🔄',
+                class: 'green',
+                action: () => {
+                  this.hideModal();
+                  this.resetPlayerPosition();
+                }
+              }
+            ]
+          });
+        }
+      },
+
+      resetPlayerPosition() {
+        this.playerGrid = { x: 0, z: 0 };
+        this.playerDirection = 0;
+        this.updatePlayerMeshTransform(false);
+        this.resetLimbs();
+        document.querySelectorAll('.command-chip').forEach(c => c.classList.remove('active-step'));
+      },
+
+      nextLevel() {
+        this.currentLevel++;
+        this.commands = [];
+        this.renderCommandList();
+        this.buildLevelMap();
+        this.updateHUD();
+      },
+
+      restartGame() {
+        this.currentLevel = 1;
+        this.hearts = this.maxHearts;
+        this.commands = [];
+        this.renderCommandList();
+        this.buildLevelMap();
+        this.updateHUD();
+      },
+
+      setUIExecutionState(executing) {
+        document.getElementById('btn-run').disabled = executing;
+        document.getElementById('btn-reset-pos').disabled = executing;
+      },
+
+      selectDifficulty(diff) {
+        Sound.playClick();
+        this.difficulty = diff;
+        this.currentLevel = 1;
+
+        if (diff === 'easy') {
+          this.maxHearts = 3;
+          this.gridSize = 5;
+        } else if (diff === 'medium') {
+          this.maxHearts = 3;
+          this.gridSize = 6;
+        } else if (diff === 'hard') {
+          this.maxHearts = 3;
+          this.gridSize = 7;
+        } else if (diff === 'hardcore') {
+          this.maxHearts = 1;
+          this.gridSize = 8;
+        }
+
+        this.hearts = this.maxHearts;
+        this.showScreen('game');
+        this.buildLevelMap();
+        this.updateHUD();
+      },
+
+      updateHUD() {
+        const lvlEl = document.getElementById('hud-level');
+        if (lvlEl) lvlEl.innerText = `STAGE ${this.currentLevel}/${this.maxLevels}`;
+
+        const heartsContainer = document.getElementById('hud-hearts');
+        if (heartsContainer) {
+          let html = '';
+          for (let i = 0; i < this.maxHearts; i++) {
+            if (i < this.hearts) {
+              html += '<span class="heart-icon">❤️</span>';
+            } else {
+              html += '<span class="heart-icon" style="filter: grayscale(100%) opacity(0.35);">🖤</span>';
+            }
+          }
+          heartsContainer.innerHTML = html;
+        }
+      },
+
+      showScreen(screenId) {
+        Sound.playClick();
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        const target = document.getElementById(`screen-${screenId}`);
+        if (target) target.classList.add('active');
+
+        if (screenId === 'game') {
+          setTimeout(() => this.onWindowResize(), 50);
+        }
+      },
+
+      toggleHelpModal(show) {
+        Sound.playClick();
+        const modal = document.getElementById('modal-help');
+        modal.classList.toggle('active', show);
+      },
+
+      showModalDialog({ icon, title, desc, buttons }) {
+        const modal = document.getElementById('modal-message');
+        document.getElementById('msg-icon').innerText = icon;
+        document.getElementById('msg-title').innerText = title;
+        document.getElementById('msg-desc').innerText = desc;
+
+        const btnContainer = document.getElementById('msg-buttons');
+        btnContainer.innerHTML = '';
+        buttons.forEach(b => {
+          const btn = document.createElement('button');
+          btn.className = `mc-btn ${b.class || ''}`;
+          btn.innerText = b.text;
+          btn.onclick = b.action;
+          btnContainer.appendChild(btn);
+        });
+
+        modal.classList.add('active');
+      },
+
+      hideModal() {
+        Sound.playClick();
+        document.getElementById('modal-message').classList.remove('active');
+      },
+
+      onWindowResize() {
+        const container = document.getElementById('canvas-container');
+        if (!container || !this.renderer || !this.camera) return;
+
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        const aspect = w / h;
+        const d = this.gridSize * 1.5;
+
+        this.camera.left = -d * aspect;
+        this.camera.right = d * aspect;
+        this.camera.top = d;
+        this.camera.bottom = -d;
+        this.camera.updateProjectionMatrix();
+
+        this.renderer.setSize(w, h);
+      },
+
+      animate() {
+        requestAnimationFrame(() => this.animate());
+
+        // Walking limb swing animation
+        if (this.isWalking) {
+          this.walkCycleTime += 0.22;
+          const angle = Math.sin(this.walkCycleTime) * 0.65;
+          if (this.leftArmPivot) this.leftArmPivot.rotation.x = angle;
+          if (this.rightArmPivot) this.rightArmPivot.rotation.x = -angle;
+          if (this.leftLegPivot) this.leftLegPivot.rotation.x = -angle;
+          if (this.rightLegPivot) this.rightLegPivot.rotation.x = angle;
+        }
+
+        // Diamond Block subtle hovering & rotating animation
+        if (this.goalMesh) {
+          this.goalMesh.rotation.y += 0.02;
+          this.goalMesh.position.y = 0.42 + Math.sin(performance.now() * 0.004) * 0.06;
+        }
+
+        if (this.renderer && this.scene && this.camera) {
+          this.renderer.render(this.scene, this.camera);
+        }
+      }
+    };
+
+    // Initialize Game on DOM ready
+    window.onload = () => {
+      App.init();
+    };
+  </script>
+</body>
+</html>
